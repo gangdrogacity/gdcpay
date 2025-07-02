@@ -118,6 +118,103 @@
             color: #28a745;
         }
         
+        .payment-success-screen {
+            display: none;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+        }
+        
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            animation: successBounce 0.6s ease-in-out;
+        }
+        
+        @keyframes successBounce {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .command-box {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .command-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            padding: 12px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            width: 100%;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .command-input::selection {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .command-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        
+        .copy-command-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+        
+        .copy-command-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .step-list {
+            text-align: left;
+            margin: 1rem 0;
+        }
+        
+        .step-list li {
+            margin: 0.8rem 0;
+            padding-left: 0.5rem;
+        }
+        
+        .celebrate-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
         .footer-info {
             text-align: center;
             margin-top: 2rem;
@@ -232,6 +329,59 @@
                         </div>
                     </div>
                     
+                    <!-- Payment Success Screen -->
+                    <div class="payment-success-screen" id="payment-success-screen">
+                        <div class="success-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="celebrate-text">
+                            🎉 Pagamento Completato con Successo! 🎉
+                        </div>
+                        <p class="mb-4">
+                            Il tuo acquisto è stato elaborato correttamente.<br>
+                            Ora puoi riscattare il tuo acquisto utilizzando il comando sottostante.
+                        </p>
+                        
+                        <div class="command-box">
+                            <h5><i class="fas fa-terminal me-2"></i>Comando di Riscatto</h5>
+                            <p class="mb-3">Copia e incolla questo comando per riscattare il tuo acquisto:</p>
+                            <input type="text" class="command-input" id="gamble-command" readonly>
+                            <div class="mt-3">
+                                <button type="button" class="btn copy-command-btn" onclick="copyGambleCommand()">
+                                    <i class="fas fa-copy me-2"></i>
+                                    Copia Comando
+                                </button>
+                                <button type="button" class="btn copy-command-btn" onclick="selectGambleCommand()">
+                                    <i class="fas fa-mouse-pointer me-2"></i>
+                                    Seleziona Tutto
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="instructions">
+                            <h6><i class="fas fa-info-circle me-2"></i>Come Procedere</h6>
+                            <ol class="step-list">
+                                <li>Copia il comando sopra utilizzando il pulsante "Copia Comando"</li>
+                                <li>Vai nell'applicazione o piattaforma dove utilizzare il comando</li>
+                                <li>Incolla ed esegui il comando <strong>/gamble</strong></li>
+                                <li>Il tuo acquisto verrà automaticamente riscattato</li>
+                            </ol>
+                            <div class="mt-3">
+                                <small>
+                                    <i class="fas fa-clock me-1"></i>
+                                    Assicurati di utilizzare il comando entro il tempo limite previsto.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="button" class="btn btn-light" onclick="resetPaymentScreen()">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Torna alla Schermata Principale
+                            </button>
+                        </div>
+                    </div>
+                    
                     <!-- Payment Widget Container -->
                     <div class="payment-section">
                         <h5><i class="fas fa-payment me-2"></i>Dettagli Pagamento</h5>
@@ -288,10 +438,37 @@
                 $('#error-message').hide();
                 $('#success-message').hide();
                 $('#payment-completed').hide();
+                $('#payment-success-screen').hide();
+            }
+            
+            // Funzione per mostrare schermata di successo pagamento
+            function showPaymentSuccess(checkoutId, transactionData = null) {
+                hideAllMessages();
+                $('#payment-success-screen').show();
+                $('#loading-spinner').hide();
+                $('#payment-section').hide();
+                
+                // Genera il comando gamble
+                const gambleCommand = `/gamble ${checkoutId}`;
+                $('#gamble-command').val(gambleCommand);
+                
+                console.log('Mostro schermata successo per checkout:', checkoutId);
             }
             
             // Funzione per mostrare pagamento già completato
             function showPaymentCompleted(checkoutData) {
+                // Se il pagamento è recente (meno di 5 minuti fa), mostra la schermata di successo
+                const isRecentPayment = checkoutData && checkoutData.date && 
+                    (new Date() - new Date(checkoutData.date)) < 5 * 60 * 1000;
+                
+                if (isRecentPayment || (checkoutData && checkoutData.showSuccessScreen)) {
+                    // Mostra la schermata di successo invece di quella "già completato"
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const checkoutId = urlParams.get('checkout_id') || urlParams.get('checkoutId') || urlParams.get('id');
+                    showPaymentSuccess(checkoutId, checkoutData);
+                    return;
+                }
+                
                 $('#payment-completed').show();
                 $('#loading-spinner').hide();
                 $('#payment-section').hide(); // Nasconde la sezione del widget
@@ -333,6 +510,23 @@
                             <div class="col-12 mt-2">
                                 <strong>Stato:</strong><br>
                                 <span class="badge bg-success">${checkoutData.status.toUpperCase()}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    // Aggiungi il comando gamble anche qui
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const checkoutId = urlParams.get('checkout_id') || urlParams.get('checkoutId') || urlParams.get('id');
+                    if (checkoutId) {
+                        detailsHtml += `
+                            <div class="col-12 mt-3">
+                                <strong>Comando di Riscatto:</strong><br>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" value="/gamble ${checkoutId}" readonly id="old-gamble-command">
+                                    <button class="btn btn-outline-secondary" onclick="copyOldGambleCommand()" type="button">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
                             </div>
                         `;
                     }
@@ -553,8 +747,6 @@
                             break;
                             
                         case 'success':
-                            showSuccess('Pagamento completato con successo!');
-                            
                             // Memorizza il completamento del pagamento in cache locale
                             localStorage.setItem(`payment_status_${checkoutId}`, 'completed');
                             if (body) {
@@ -565,21 +757,10 @@
                                 }));
                             }
                             
-                            // Mostra dettagli del pagamento se disponibili
-                            if (body && body.transaction_id) {
-                                setTimeout(() => {
-                                    $('#success-text').html(`
-                                        Pagamento completato con successo!<br>
-                                        <small>ID Transazione: ${body.transaction_id}</small>
-                                    `);
-                                }, 1000);
-                            }
+                            // Mostra la schermata di successo con il comando gamble
+                            showPaymentSuccess(checkoutId, body);
                             
-                            // Reindirizza o esegui altre azioni dopo il successo
-                            setTimeout(() => {
-                                // Qui puoi aggiungere la logica per reindirizzare l'utente
-                                console.log('Pagamento completato - puoi reindirizzare l\'utente');
-                            }, 3000);
+                            console.log('Pagamento completato - comando gamble generato');
                             break;
                             
                         case 'fail':
@@ -683,6 +864,83 @@
             } else {
                 alert('Checkout ID non trovato');
             }
+        }
+        
+        // Funzione per copiare il comando gamble
+        function copyGambleCommand() {
+            const commandInput = document.getElementById('gamble-command');
+            const command = commandInput.value;
+            
+            navigator.clipboard.writeText(command).then(() => {
+                // Feedback visivo per il pulsante
+                const button = event.target.closest('button');
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check me-2"></i>Copiato!';
+                button.style.background = 'rgba(40, 167, 69, 0.6)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = '';
+                }, 2000);
+                
+                console.log('Comando gamble copiato:', command);
+            }).catch(() => {
+                alert('Impossibile copiare negli appunti. Seleziona manualmente il comando.');
+                selectGambleCommand();
+            });
+        }
+        
+        // Funzione per selezionare tutto il comando
+        function selectGambleCommand() {
+            const commandInput = document.getElementById('gamble-command');
+            commandInput.select();
+            commandInput.setSelectionRange(0, 99999); // Per dispositivi mobili
+            
+            console.log('Comando gamble selezionato per copia manuale');
+        }
+        
+        // Funzione per tornare alla schermata principale
+        function resetPaymentScreen() {
+            $('#payment-success-screen').hide();
+            $('#payment-section').show();
+            $('#loading-spinner').hide();
+            
+            // Rimuovi la cache per permettere un nuovo test
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkoutId = urlParams.get('checkout_id') || urlParams.get('checkoutId') || urlParams.get('id');
+            
+            if (checkoutId) {
+                localStorage.removeItem(`payment_status_${checkoutId}`);
+                localStorage.removeItem(`payment_data_${checkoutId}`);
+            }
+            
+            console.log('Tornato alla schermata principale');
+        }
+        
+        // Funzione per copiare il comando dalla schermata "già completato"
+        function copyOldGambleCommand() {
+            const commandInput = document.getElementById('old-gamble-command');
+            const command = commandInput.value;
+            
+            navigator.clipboard.writeText(command).then(() => {
+                // Feedback visivo per il pulsante
+                const button = event.target.closest('button');
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                }, 2000);
+                
+                console.log('Comando gamble copiato (da schermata già completato):', command);
+            }).catch(() => {
+                alert('Impossibile copiare negli appunti. Seleziona manualmente il comando.');
+                commandInput.select();
+            });
         }
     </script>
 </body>
