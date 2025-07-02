@@ -101,6 +101,23 @@
             min-height: 400px;
         }
         
+        .payment-completed {
+            display: none;
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border: 1px solid #bee5eb;
+            text-align: center;
+        }
+        
+        .payment-status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #28a745;
+        }
+        
         .footer-info {
             text-align: center;
             margin-top: 2rem;
@@ -192,6 +209,29 @@
                         <span id="success-text">Pagamento completato con successo!</span>
                     </div>
                     
+                    <!-- Payment Already Completed -->
+                    <div class="payment-completed" id="payment-completed">
+                        <div class="payment-status-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h4>Pagamento Già Completato</h4>
+                        <p class="mb-3">Questo checkout è già stato processato con successo.</p>
+                        <div id="payment-details" class="mt-3">
+                            <!-- Dettagli del pagamento verranno inseriti qui -->
+                        </div>
+                        <hr>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Se hai bisogno di assistenza, contatta il supporto con il Checkout ID mostrato sopra.
+                        </small>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearPaymentCache()">
+                                <i class="fas fa-trash-alt me-1"></i>
+                                Cancella Cache (Solo per Test)
+                            </button>
+                        </div>
+                    </div>
+                    
                     <!-- Payment Widget Container -->
                     <div class="payment-section">
                         <h5><i class="fas fa-payment me-2"></i>Dettagli Pagamento</h5>
@@ -221,7 +261,7 @@
     
     <!-- Main Script -->
     <script>
-        $(document).ready(function() {
+        $(document).ready(async function() {
             // Funzione per ottenere parametri URL
             function getUrlParameter(name) {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -247,6 +287,177 @@
             function hideAllMessages() {
                 $('#error-message').hide();
                 $('#success-message').hide();
+                $('#payment-completed').hide();
+            }
+            
+            // Funzione per mostrare pagamento già completato
+            function showPaymentCompleted(checkoutData) {
+                $('#payment-completed').show();
+                $('#loading-spinner').hide();
+                $('#payment-section').hide(); // Nasconde la sezione del widget
+                
+                // Popola i dettagli del pagamento se disponibili
+                if (checkoutData) {
+                    let detailsHtml = '<div class="row text-start">';
+                    
+                    if (checkoutData.amount) {
+                        detailsHtml += `
+                            <div class="col-md-6">
+                                <strong>Importo:</strong><br>
+                                ${(checkoutData.amount).toFixed(2)} ${checkoutData.currency || 'EUR'}
+                            </div>
+                        `;
+                    }
+                    
+                    if (checkoutData.date) {
+                        const paymentDate = new Date(checkoutData.date);
+                        detailsHtml += `
+                            <div class="col-md-6">
+                                <strong>Data Pagamento:</strong><br>
+                                ${paymentDate.toLocaleDateString('it-IT')} ${paymentDate.toLocaleTimeString('it-IT')}
+                            </div>
+                        `;
+                    }
+                    
+                    if (checkoutData.transaction_id) {
+                        detailsHtml += `
+                            <div class="col-12 mt-2">
+                                <strong>ID Transazione:</strong><br>
+                                <code>${checkoutData.transaction_id}</code>
+                            </div>
+                        `;
+                    }
+                    
+                    if (checkoutData.status) {
+                        detailsHtml += `
+                            <div class="col-12 mt-2">
+                                <strong>Stato:</strong><br>
+                                <span class="badge bg-success">${checkoutData.status.toUpperCase()}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    detailsHtml += '</div>';
+                    $('#payment-details').html(detailsHtml);
+                }
+            }
+            
+            // Funzione per verificare lo stato del checkout
+            async function checkPaymentStatus(checkoutId) {
+                try {
+                    // Prima controlla se abbiamo già memorizzato che questo pagamento è completato
+                    const cachedStatus = localStorage.getItem(`payment_status_${checkoutId}`);
+                    if (cachedStatus === 'completed') {
+                        console.log('Pagamento già completato (da cache locale)');
+                        const cachedData = localStorage.getItem(`payment_data_${checkoutId}`);
+                        showPaymentCompleted(cachedData ? JSON.parse(cachedData) : { status: 'paid' });
+                        return true;
+                    }
+                    
+                    console.log('Controllo stato pagamento per checkout ID:', checkoutId);
+                    
+                    // Nota: Questa chiamata diretta all'API potrebbe non funzionare a causa di CORS
+                    // In un ambiente di produzione, dovresti fare questa chiamata dal tuo backend
+                    const response = await fetch(`https://js.sumup.com/api/checkouts/${checkoutId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // Nota: In produzione, l'API key dovrebbe essere gestita dal backend
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const checkoutData = await response.json();
+                        console.log('Dati checkout ricevuti:', checkoutData);
+                        
+                        // Controlla se il pagamento è stato completato
+                        if (checkoutData.status === 'PAID' || checkoutData.status === 'paid') {
+                            // Memorizza il risultato in cache locale
+                            localStorage.setItem(`payment_status_${checkoutId}`, 'completed');
+                            localStorage.setItem(`payment_data_${checkoutId}`, JSON.stringify(checkoutData));
+                            
+                            showPaymentCompleted(checkoutData);
+                            return true; // Pagamento completato
+                        }
+                    } else if (response.status === 404) {
+                        console.log('Checkout non trovato o non ancora processato');
+                        return false; // Checkout non trovato o in attesa
+                    } else {
+                        console.log('Errore nella verifica dello stato:', response.status);
+                        return false; // Errore, procedi comunque
+                    }
+                } catch (error) {
+                    console.log('Errore nella verifica dello stato del pagamento:', error);
+                    console.log('Procedo con il caricamento del widget (potrebbe essere un problema di CORS)');
+                    return false; // In caso di errore, procedi comunque
+                }
+                
+                return false;
+            }
+            
+            // Funzione alternativa per verificare lo stato tramite widget SumUp
+            function checkPaymentStatusViaWidget(checkoutId) {
+                return new Promise((resolve) => {
+                    // Timeout per evitare attese infinite
+                    const timeout = setTimeout(() => {
+                        resolve(false);
+                    }, 5000);
+                    
+                    try {
+                        // Crea una configurazione temporanea per verificare lo stato
+                        const tempConfig = {
+                            id: 'temp-sumup-check',
+                            checkoutId: checkoutId,
+                            showSubmitButton: false,
+                            showFooter: false,
+                            
+                            onLoad: function() {
+                                clearTimeout(timeout);
+                                resolve(false); // Widget caricato normalmente, pagamento non completato
+                            },
+                            
+                            onResponse: function(type, body) {
+                                clearTimeout(timeout);
+                                if (type === 'success' || (body && body.status === 'PAID')) {
+                                    resolve(true); // Pagamento già completato
+                                } else {
+                                    resolve(false);
+                                }
+                            },
+                            
+                            onPaymentMethodsLoad: function(methods) {
+                                // Se i metodi di pagamento sono caricati, significa che il checkout è ancora attivo
+                                clearTimeout(timeout);
+                                resolve(false);
+                                return [];  // Non mostrare metodi di pagamento
+                            }
+                        };
+                        
+                        // Crea un elemento temporaneo nascosto
+                        const tempDiv = document.createElement('div');
+                        tempDiv.id = 'temp-sumup-check';
+                        tempDiv.style.display = 'none';
+                        document.body.appendChild(tempDiv);
+                        
+                        // Monta il widget temporaneo
+                        const tempWidget = SumUpCard.mount(tempConfig);
+                        
+                        // Pulisci dopo il controllo
+                        setTimeout(() => {
+                            if (tempWidget && tempWidget.unmount) {
+                                tempWidget.unmount();
+                            }
+                            if (tempDiv && tempDiv.parentNode) {
+                                tempDiv.parentNode.removeChild(tempDiv);
+                            }
+                        }, 6000);
+                        
+                    } catch (error) {
+                        clearTimeout(timeout);
+                        console.log('Errore nel controllo via widget:', error);
+                        resolve(false);
+                    }
+                });
             }
             
             // Funzione per formattare il Checkout ID
@@ -272,6 +483,37 @@
             // Mostra il loading spinner
             $('#loading-spinner').show();
             hideAllMessages();
+            
+            // Prima controlla se il pagamento è già stato completato
+            console.log('Verifico se il pagamento è già stato completato...');
+            
+            // Prova prima con l'API diretta (potrebbe fallire per CORS)
+            const isPaymentCompleted = await checkPaymentStatus(checkoutId);
+            
+            if (isPaymentCompleted) {
+                console.log('Pagamento già completato, non carico il widget');
+                return; // Esci qui se il pagamento è già completato
+            }
+            
+            // Se la verifica API fallisce, prova con il widget (metodo alternativo)
+            console.log('Verifica API completata, procedo con il caricamento del widget...');
+            
+            // Verifica alternativa tramite widget se disponibile
+            if (typeof SumUpCard !== 'undefined') {
+                try {
+                    const widgetCheckResult = await checkPaymentStatusViaWidget(checkoutId);
+                    if (widgetCheckResult) {
+                        console.log('Pagamento già completato (verificato via widget)');
+                        showPaymentCompleted({
+                            status: 'paid',
+                            date: new Date().toISOString()
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    console.log('Verifica via widget fallita, procedo normalmente:', error);
+                }
+            }
             
             // Configurazione del widget SumUp
             const sumupConfig = {
@@ -312,6 +554,16 @@
                             
                         case 'success':
                             showSuccess('Pagamento completato con successo!');
+                            
+                            // Memorizza il completamento del pagamento in cache locale
+                            localStorage.setItem(`payment_status_${checkoutId}`, 'completed');
+                            if (body) {
+                                localStorage.setItem(`payment_data_${checkoutId}`, JSON.stringify({
+                                    ...body,
+                                    date: new Date().toISOString(),
+                                    status: 'paid'
+                                }));
+                            }
                             
                             // Mostra dettagli del pagamento se disponibili
                             if (body && body.transaction_id) {
@@ -413,6 +665,23 @@
         function unmountWidget() {
             if (window.sumupCardInstance && window.sumupCardInstance.unmount) {
                 window.sumupCardInstance.unmount();
+            }
+        }
+        
+        // Funzione per cancellare la cache del pagamento (per test)
+        function clearPaymentCache() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkoutId = urlParams.get('checkout_id') || urlParams.get('checkoutId') || urlParams.get('id');
+            
+            if (checkoutId) {
+                localStorage.removeItem(`payment_status_${checkoutId}`);
+                localStorage.removeItem(`payment_data_${checkoutId}`);
+                
+                // Mostra conferma
+                alert('Cache del pagamento cancellata. Ricarica la pagina per testare nuovamente.');
+                console.log('Cache del pagamento cancellata per checkout ID:', checkoutId);
+            } else {
+                alert('Checkout ID non trovato');
             }
         }
     </script>
