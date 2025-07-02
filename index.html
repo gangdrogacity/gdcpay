@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento SumUp - GDC Pay</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .payment-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .header-section h1 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header-section p {
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+        
+        .checkout-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #28a745;
+        }
+        
+        .checkout-id {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        
+        .payment-section {
+            margin-top: 2rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .error-message {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .payment-widget-container {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+            background: #fafafa;
+            min-height: 400px;
+        }
+        
+        .footer-info {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .secure-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #28a745;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .secure-badge i {
+            margin-right: 0.3rem;
+        }
+        
+        /* Personalizzazione del widget SumUp */
+        [data-sumup-id='widget__container'] {
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        [data-sumup-id='submit_button'] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 12px 24px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+        
+        [data-sumup-id='submit_button']:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+            transition: all 0.3s ease !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="payment-container">
+                    <!-- Header Section -->
+                    <div class="header-section">
+                        <h1><i class="fas fa-credit-card me-2"></i>Pagamento Sicuro</h1>
+                        <p>Completa il tuo pagamento utilizzando il nostro sistema sicuro</p>
+                        <div class="secure-badge">
+                            <i class="fas fa-shield-alt"></i>
+                            Pagamento Protetto SSL
+                        </div>
+                    </div>
+                    
+                    <!-- Checkout Info -->
+                    <div class="checkout-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Informazioni Checkout</h5>
+                        <p class="mb-2"><strong>Checkout ID:</strong></p>
+                        <div class="checkout-id" id="checkout-id-display">
+                            <i class="fas fa-spinner fa-spin"></i> Caricamento...
+                        </div>
+                    </div>
+                    
+                    <!-- Loading Spinner -->
+                    <div class="loading-spinner" id="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Caricamento widget di pagamento...</p>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div class="error-message" id="error-message">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="error-text">Si è verificato un errore durante il caricamento del sistema di pagamento.</span>
+                    </div>
+                    
+                    <!-- Success Message -->
+                    <div class="success-message" id="success-message">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span id="success-text">Pagamento completato con successo!</span>
+                    </div>
+                    
+                    <!-- Payment Widget Container -->
+                    <div class="payment-section">
+                        <h5><i class="fas fa-payment me-2"></i>Dettagli Pagamento</h5>
+                        <div class="payment-widget-container">
+                            <div id="sumup-card"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer Info -->
+                    <div class="footer-info">
+                        <p><i class="fas fa-lock me-1"></i> I tuoi dati sono protetti con crittografia SSL a 256 bit</p>
+                        <small>Powered by SumUp | PCI DSS Compliant | 3D Secure 2.0</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
+    <!-- SumUp SDK -->
+    <script src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
+    
+    <!-- Main Script -->
+    <script>
+        $(document).ready(function() {
+            // Funzione per ottenere parametri URL
+            function getUrlParameter(name) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(name);
+            }
+            
+            // Funzione per mostrare messaggio di errore
+            function showError(message) {
+                $('#error-text').text(message);
+                $('#error-message').show();
+                $('#loading-spinner').hide();
+                console.error('Errore:', message);
+            }
+            
+            // Funzione per mostrare messaggio di successo
+            function showSuccess(message) {
+                $('#success-text').text(message);
+                $('#success-message').show();
+                $('#loading-spinner').hide();
+            }
+            
+            // Funzione per nascondere tutti i messaggi
+            function hideAllMessages() {
+                $('#error-message').hide();
+                $('#success-message').hide();
+            }
+            
+            // Funzione per formattare il Checkout ID
+            function formatCheckoutId(checkoutId) {
+                if (!checkoutId) return 'Non specificato';
+                
+                // Inserisce spazi ogni 8 caratteri per una migliore leggibilità
+                return checkoutId.replace(/(.{8})(?=.)/g, '$1 ');
+            }
+            
+            // Ottieni il checkout ID dall'URL
+            const checkoutId = getUrlParameter('checkout_id') || getUrlParameter('checkoutId') || getUrlParameter('id');
+            
+            // Mostra il checkout ID
+            $('#checkout-id-display').html(formatCheckoutId(checkoutId));
+            
+            // Verifica se il checkout ID è presente
+            if (!checkoutId) {
+                showError('Checkout ID non trovato nell\'URL. Assicurati che l\'URL contenga il parametro "checkout_id".');
+                return;
+            }
+            
+            // Mostra il loading spinner
+            $('#loading-spinner').show();
+            hideAllMessages();
+            
+            // Configurazione del widget SumUp
+            const sumupConfig = {
+                id: 'sumup-card',
+                checkoutId: checkoutId,
+                locale: 'it-IT',
+                currency: 'EUR',
+                showEmail: true,
+                showZipCode: false,
+                showFooter: true,
+                showSubmitButton: true,
+                
+                // Callback quando il widget è caricato
+                onLoad: function() {
+                    console.log('Widget SumUp caricato con successo');
+                    $('#loading-spinner').hide();
+                    hideAllMessages();
+                },
+                
+                // Callback quando i metodi di pagamento sono caricati
+                onPaymentMethodsLoad: function(paymentMethods) {
+                    console.log('Metodi di pagamento caricati:', paymentMethods);
+                    $('#loading-spinner').hide();
+                    hideAllMessages();
+                    return paymentMethods; // Mostra tutti i metodi disponibili
+                },
+                
+                // Callback principale per gestire le risposte
+                onResponse: function(type, body) {
+                    console.log('Risposta SumUp - Tipo:', type, 'Body:', body);
+                    
+                    hideAllMessages();
+                    
+                    switch (type) {
+                        case 'sent':
+                            showSuccess('Pagamento inviato per l\'elaborazione. Attendere...');
+                            break;
+                            
+                        case 'success':
+                            showSuccess('Pagamento completato con successo!');
+                            
+                            // Mostra dettagli del pagamento se disponibili
+                            if (body && body.transaction_id) {
+                                setTimeout(() => {
+                                    $('#success-text').html(`
+                                        Pagamento completato con successo!<br>
+                                        <small>ID Transazione: ${body.transaction_id}</small>
+                                    `);
+                                }, 1000);
+                            }
+                            
+                            // Reindirizza o esegui altre azioni dopo il successo
+                            setTimeout(() => {
+                                // Qui puoi aggiungere la logica per reindirizzare l'utente
+                                console.log('Pagamento completato - puoi reindirizzare l\'utente');
+                            }, 3000);
+                            break;
+                            
+                        case 'fail':
+                            showError('Pagamento fallito. Riprova o contatta il supporto.');
+                            break;
+                            
+                        case 'error':
+                            let errorMsg = 'Si è verificato un errore durante il pagamento.';
+                            if (body && body.message) {
+                                errorMsg += ' Dettagli: ' + body.message;
+                            }
+                            showError(errorMsg);
+                            break;
+                            
+                        case 'invalid':
+                            showError('Dati del pagamento non validi. Controlla i campi e riprova.');
+                            break;
+                            
+                        case 'auth-screen':
+                            showSuccess('Autenticazione richiesta. Segui le istruzioni per completare il pagamento.');
+                            break;
+                            
+                        default:
+                            console.log('Tipo di risposta non gestito:', type);
+                    }
+                }
+            };
+            
+            // Inizializza il widget SumUp
+            try {
+                // Verifica se SumUpCard è disponibile
+                if (typeof SumUpCard === 'undefined') {
+                    throw new Error('SDK SumUp non caricato correttamente');
+                }
+                
+                // Monta il widget
+                const sumupCard = SumUpCard.mount(sumupConfig);
+                
+                // Salva il riferimento al widget per uso futuro
+                window.sumupCardInstance = sumupCard;
+                
+                console.log('Widget SumUp inizializzato con checkout ID:', checkoutId);
+                
+            } catch (error) {
+                console.error('Errore durante l\'inizializzazione del widget SumUp:', error);
+                showError('Errore durante il caricamento del sistema di pagamento: ' + error.message);
+            }
+            
+            // Gestione degli errori globali
+            window.addEventListener('error', function(e) {
+                console.error('Errore JavaScript:', e);
+                if (e.message.includes('SumUp') || e.message.includes('sumup')) {
+                    showError('Errore nel sistema di pagamento. Ricarica la pagina e riprova.');
+                }
+            });
+            
+            // Funzione per copiare il Checkout ID
+            $('#checkout-id-display').on('click', function() {
+                const checkoutText = checkoutId;
+                navigator.clipboard.writeText(checkoutText).then(() => {
+                    // Mostra feedback visivo
+                    const originalText = $(this).html();
+                    $(this).html('<i class="fas fa-check text-success"></i> Copiato!');
+                    setTimeout(() => {
+                        $(this).html(originalText);
+                    }, 2000);
+                }).catch(() => {
+                    console.log('Impossibile copiare negli appunti');
+                });
+            });
+        });
+        
+        // Funzione per forzare l'invio del pagamento (se necessario)
+        function submitPayment() {
+            if (window.sumupCardInstance && window.sumupCardInstance.submit) {
+                window.sumupCardInstance.submit();
+            } else {
+                console.error('Widget SumUp non disponibile');
+            }
+        }
+        
+        // Funzione per smontare il widget (se necessario)
+        function unmountWidget() {
+            if (window.sumupCardInstance && window.sumupCardInstance.unmount) {
+                window.sumupCardInstance.unmount();
+            }
+        }
+    </script>
+</body>
+</html>
