@@ -412,7 +412,54 @@
     <!-- Main Script -->
     <script>
         $(document).ready(async function() {
-            // Funzione per ottenere parametri URL
+
+			// Creo un intervallo per controllare lo stato del pagamento ogni 2 secondi
+			let paymentStatusInterval;
+
+			function startPaymentStatusCheck(checkoutId) {
+				// Pulisco eventuali intervalli precedenti
+				if (paymentStatusInterval) {
+					clearInterval(paymentStatusInterval);
+				}
+				
+				console.log('Avvio controllo automatico dello stato del pagamento ogni 2 secondi...');
+				
+				// Imposto l'intervallo per controllare lo stato ogni 2 secondi
+				paymentStatusInterval = setInterval(async () => {
+					try {
+						// Utilizzo la funzione esistente per verificare lo stato tramite API js.sumup.com
+						const response = await fetch(`https://js.sumup.com/api/checkouts/${checkoutId}`, {
+							method: 'GET',
+							headers: {
+								'Content-Type': 'application/json'
+							}
+						});
+						
+						if (response.ok) {
+							const checkoutData = await response.json();
+							
+							if (checkoutData.status === 'PAID' || checkoutData.status === 'paid') {
+								console.log('Pagamento completato rilevato durante il controllo automatico');
+								
+								// Memorizza il risultato in cache locale
+								localStorage.setItem(`payment_status_${checkoutId}`, 'completed');
+								localStorage.setItem(`payment_data_${checkoutId}`, JSON.stringify(checkoutData));
+								
+								// Mostra la schermata di pagamento completato
+								showPaymentCompleted(checkoutData);
+								
+								// Interrompo l'intervallo quando il pagamento è completato
+								clearInterval(paymentStatusInterval);
+							}
+						}
+					} catch (error) {
+						console.log('Errore durante il controllo automatico dello stato:', error);
+					}
+				}, 2000); // 2000 ms = 2 secondi
+			}
+            
+			
+			// Funzione per ottenere parametri URL
             function getUrlParameter(name) {
                 const urlParams = new URLSearchParams(window.location.search);
                 return urlParams.get(name);
@@ -664,6 +711,7 @@
             
             // Ottieni il checkout ID dall'URL
             const checkoutId = getUrlParameter('checkout_id') || getUrlParameter('checkoutId') || getUrlParameter('id');
+			startPaymentStatusCheck(checkoutId);
             
             // Mostra il checkout ID
             $('#checkout-id-display').html(formatCheckoutId(checkoutId));
